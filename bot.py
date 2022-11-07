@@ -64,6 +64,16 @@ async def on_message(message):
     if message.content.startswith('!help'):
         await message.channel.send('''
         **Comandos**:
+        \n PARA USAR EL BOT DEL MUNDIAL TIENES QUE:
+        1- **!registro** NOMBRE GMAIL CONTRASEÑA REPETIR CONTRASEÑA
+        2- **!iniciar** GMAIL CONTRASEÑA
+        Nota : AL PASAR 24 HORAS TIENES QUE VOLVER A INICIAR SESION
+        ----------------------------------------------------------------------------
+        **Comandos**
+        !equipo: Busca el equipo del pais que introduzcas
+        !partidos: Busca todos los partidos del pais que intruduzcas
+        !grupo:Busca los equipos del grupo que introduces: A,B,C,D,E,F,G,H
+        ----------------------------------------------------------------------------------
         \n!pais: busca la informacion de un pais
         \nnota: si el nombre del pais consta mas de dos palabras deben ser separadas con un guion (-)
         \n!calc: Una pequeña calculadora
@@ -109,7 +119,8 @@ async def on_message(message):
             await message.channel.send('Ha habido un error:(')
     
     if message.content.startswith('!equipo'):
-        equipo = message.content.split(' ')[1]
+        message_new = await message.channel.send('Cargando...')
+        equipo = message.content.split(' ')[1].capitalize()
         token = cur.execute(f"""
             SELECT token FROM users
             WHERE discord_id = {message.author.id}
@@ -131,15 +142,24 @@ async def on_message(message):
                     return team
 
         equipito = getTeam(equipo)
-        print(equipito)
-        flag = equipito['flag']
-        grupos = equipito['groups']
-        print(flag)
-        await message.channel.send(flag)
-        await message.channel.send(f'Grupo: {grupos}')
+        if equipito is None:
+            await message_new.edit(content=f'Este equipo no existe en el mundial, ingrese otro equipo')
+        else:
+            fifa_code = equipito['fifa_code']
+            flag = equipito['flag']
+            grupos = equipito['groups']
+            nombre = equipito['name_en']
+            await message_new.edit(content=f'''
+            \nPais: {nombre}
+            \nFifa Code : {fifa_code}
+            \nGrupo: {grupos}
+            ''')
+            await message.channel.send(f'{flag}')
+            
+
 
     if message.content.startswith('!partidos'):
-        equipo = message.content.split(' ')[1]
+        equipo = message.content.split(' ')[1].capitalize()
         token = cur.execute(f"""
             SELECT token FROM users
             WHERE discord_id = {message.author.id}
@@ -155,6 +175,7 @@ async def on_message(message):
         headers["Authorization"] = f"Bearer {tokenporfin}"
         response = requests.get('http://api.cup2022.ir/api/v1/match', headers=headers)
         data_response = response.json()
+        print(data_response)
         for team in data_response["data"]:
             arr = [team["home_team_en"] == equipo]
             for t in arr:
@@ -164,7 +185,6 @@ async def on_message(message):
                     jornada = team['matchday']
                     await message.channel.send(f'jornada:{jornada}')
                     await message.channel.send(f'{home} vs {away}')
-                    print('Esto')
         for team in data_response["data"]:
             ar2 = [team["away_team_en"] == equipo]
             for te in ar2:
@@ -174,10 +194,10 @@ async def on_message(message):
                     jornada = team['matchday']
                     await message.channel.send(f'jornada:{jornada}')
                     await message.channel.send(f'{home} vs {away}')
-                    print('Esto Es LA')
 
     if message.content.startswith('!grupo'):
-        grupo = message.content.split(' ')[1]
+        message_new = await message.channel.send('Cargando...')
+        grupo = message.content.split(' ')[1].capitalize()
         token = cur.execute(f"""
             SELECT token FROM users
             WHERE discord_id = {message.author.id}
@@ -201,7 +221,7 @@ async def on_message(message):
                 c = (grupo['teams'][2]['name_en'])
                 d = (grupo['teams'][3]['name_en'])
 
-                await message.channel.send(f'''
+                await message_new.edit(content=f'''
                 Equipos:
                 {a}
                 {b}
@@ -209,7 +229,7 @@ async def on_message(message):
                 {d}
                 ''')
         else:
-            await message.channel.send('Este grupo no existe, intenta con otro')
+            await message_new.edit(content=f'Este grupo no existe, intenta con otro')
     
         
 
